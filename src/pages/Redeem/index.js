@@ -36,11 +36,20 @@ class Redeem extends Component {
     inputAmountB: '',
     lastEditedField: '',
     recipient: '',
-    inputs: [undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined]
+    inputs: [undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined],
+    ethValue: 0
   };
 
   componentWillMount() {
     ReactGA.pageview(window.location.pathname + window.location.search);
+
+    const items = window.location.pathname.split('/');
+    const abi = BSKT_ABI.find((abi) => { return abi.name === items[1] }) || { inputs: [] }
+
+    this.setState({
+      abi,
+      items
+    });
   }
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -291,13 +300,20 @@ class Redeem extends Component {
       this.setState(appendState);
     }
   };
-
+  updateEthValue = (amount) => {
+    console.log("SNOE")
+    this.setState({
+      ethValue: Number(amount)
+    }, this.recalcForm);
+  }
   updateInput = (amount, index = 0) => {
+
     const inputs = this.state.inputs
     inputs[index] = amount
     this.setState({
       inputs: amount
     }, this.recalcForm);
+
   };
 
   onRedeem = async () => {
@@ -308,21 +324,10 @@ class Redeem extends Component {
       selectors,
       addPendingTx,
     } = this.props;
-    const {
-      inputCurrency,
-      outputCurrency,
-    } = this.state;
 
-    const blockNumber = await promisify(web3, 'getBlockNumber');
-    const block = await promisify(web3, 'getBlock', blockNumber);
-    const deadline = block.timestamp + 300;
-
-    const func = window.location.pathname.split('/').slice(-1)[0];
-    const currentABI = BSKT_ABI.find((abi) => { return abi.name === func })
-    const inputs = currentABI.inputs.map((input, index) => {
-
+    const inputs = this.state.abi.inputs.map((input, index) => {
       if (input.type === 'address') {
-        return this.state.inputs[index] || '0xf1e48f13768bd8114a530070b43257a63f24bb12'
+        return this.state.inputs[index]
       } else if (input.type === 'uint256') {
         return BN(this.state.inputs[index]).multipliedBy(10 ** 18).toFixed(0)
       } else if (input.type.slice(-2) === '[]') {
@@ -332,9 +337,9 @@ class Redeem extends Component {
       }
     })
     return new web3.eth.Contract(BSKT_ABI, '0xc778417e063141139fce010982780140aa0cd5ab')
-      .methods[func].apply(this, inputs).send({
+      .methods[this.state.abi.inputs[1]].apply(this, inputs).send({
         from: account,
-        value: 0,
+        value: this.state.ethValue,
       }, (err, data) => {
         if (!err) {
           addPendingTx(data);
@@ -374,14 +379,14 @@ class Redeem extends Component {
               'header--inactive': !this.props.isConnected,
             })}
           />
-          <h1>{currentABI.name}({currentABI.inputs.map((input) => { return input.type }).join(', ')})</h1>
+          <h3>{currentABI.name}({currentABI.inputs.map((input) => { return input.type }).join(', ')})</h3>
 
           {currentABI.inputs.map((input, index) => {
             if (input.type == 'address') {
               return <AddressInputPanel
                 title={input.name}
-                value={this.state.inputs[index]}
-                onChange={address => this.setState({ recipient: address })}
+                value={this.state.inputs[index] ? this.state.inputs[index] : '0xc30f370B4ca500eF0eF78a22F5aB8cD445760784'}
+                onChange={address => this.updateInput(address, index)}
               />
             } else if (input.type == 'uint256') {
               return <CurrencyInputPanel
@@ -392,7 +397,7 @@ class Redeem extends Component {
                   : ''
                 }
 
-                onValueChange={console.log}
+                onChange={address => this.updateInput(address, index)}
                 value={this.state.inputs[index]}
                 errorMessage={inputError}
               />
@@ -401,7 +406,7 @@ class Redeem extends Component {
             }
           })}
 
-          {currentABI.stateMutability === 'payable' && <CurrencyInputPanel
+          {currentABI.payable && <CurrencyInputPanel
             title={'send eth'}
             description={lastEditedField === OUTPUT ? estimatedText : ''}
             extraText={inputCurrency
@@ -409,9 +414,8 @@ class Redeem extends Component {
               : ''
             }
 
-            onValueChange={this.updateInput}
-            selectedTokenAddress={'ETH'}
-            value={inputValue}
+            onChange={amount => this.updateEthValue(amount)}
+            value={this.state.ethValue}
             errorMessage={inputError}
           />}
           <div className="swap__cta-container">

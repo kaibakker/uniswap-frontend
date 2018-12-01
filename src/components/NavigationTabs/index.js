@@ -45,6 +45,7 @@ class NavigationTabs extends Component {
           { this.renderTab('Swap', '/swap', /swap/) }
           { this.renderTab('Send', '/send', /send/) }
           { this.renderTab('Pool', '/add-liquidity', /add-liquidity|remove-liquidity|create-exchange/) }
+          { this.renderTab('Redeem', '/redeem', /redeem/) }
         </Tabs>
         {
           showBetaMessage && (

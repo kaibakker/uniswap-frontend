@@ -9,12 +9,13 @@ import Header from '../components/Header';
 import Swap from './Swap';
 import Send from './Send';
 import Pool from './Pool';
+import Redeem from './Redeem';
 
 import './App.scss';
 
 class App extends Component {
   componentWillMount() {
-    const { initialize, startWatching} = this.props;
+    const { initialize, startWatching } = this.props;
     initialize().then(startWatching);
   };
 
@@ -53,6 +54,7 @@ class App extends Component {
           >
             <Route exact path="/swap" component={Swap} />
             <Route exact path="/send" component={Send} />
+            <Route exact path="/redeem" component={Redeem} />
             <Route exact path="/add-liquidity" component={Pool} />
             <Route exact path="/remove-liquidity" component={Pool} />
             <Route exact path="/create-exchange/:tokenAddress?" component={Pool} />

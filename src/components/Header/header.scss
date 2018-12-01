@@ -28,7 +28,7 @@
   }
 
   &--inactive {
-    opacity: .5;
+    opacity: .9;
   }
 
   &__dialog {
@@ -63,7 +63,7 @@
       cursor: pointer;
     }
 
-    img + img {
+    img+img {
       margin-left: 1rem;
     }
   }

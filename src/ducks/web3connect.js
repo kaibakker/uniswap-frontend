@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import {BigNumber as BN} from 'bignumber.js';
+import { BigNumber as BN } from 'bignumber.js';
 import Web3 from 'web3';
 import ERC20_ABI from "../abi/erc20";
 import ERC20_WITH_BYTES_ABI from "../abi/erc20_symbol_bytes32";
@@ -82,15 +82,16 @@ export const selectors = () => (dispatch, getState) => {
   };
 
   const getApprovals = (tokenAddress, tokenOwner, spender) => {
-    const token = state.approvals[tokenAddress] || {};
-    const owner = token[tokenOwner] || {};
+    // const token = state.approvals[tokenAddress] || {};
+    // const owner = token[tokenOwner] || {};
 
-    if (!owner[spender]) {
-      dispatch(watchApprovals({ tokenAddress, tokenOwner, spender }));
-      return Balance(0);
-    }
+    // if (!owner[spender]) {
+    //   dispatch(watchApprovals({ tokenAddress, tokenOwner, spender }));
+    //   return Balance(0);
+    // }
 
-    return owner[spender];
+    // return owner[spender];
+    return true;
   };
 
   return {
@@ -312,7 +313,7 @@ export const sync = () => async (dispatch, getState) => {
       const contractBytes32 = contracts[tokenAddress] || new web3.eth.Contract(ERC20_WITH_BYTES_ABI, tokenAddress);
 
       Object.entries(token)
-        .forEach(([ tokenOwnerAddress, tokenOwner ]) => {
+        .forEach(([tokenOwnerAddress, tokenOwner]) => {
           tokenOwner.forEach(async spenderAddress => {
             const approvalBalance = getApprovals(tokenAddress, tokenOwnerAddress, spenderAddress);
             const balance = await contract.methods.allowance(tokenOwnerAddress, spenderAddress).call();
@@ -404,7 +405,7 @@ export default function web3connectReducer(state = initialState, { type, payload
           ...state.watched,
           balances: {
             ...state.watched.balances,
-            ethereum: [ ...state.watched.balances.ethereum, payload ],
+            ethereum: [...state.watched.balances.ethereum, payload],
           },
         },
       };
@@ -419,7 +420,7 @@ export default function web3connectReducer(state = initialState, { type, payload
           ...watched,
           balances: {
             ...balances,
-            [payload.tokenAddress]: [ ...watchlist, payload.balanceOf ],
+            [payload.tokenAddress]: [...watchlist, payload.balanceOf],
           },
         },
       };
@@ -466,7 +467,7 @@ export default function web3connectReducer(state = initialState, { type, payload
             ...state.watched.approvals,
             [payload.tokenAddress]: {
               ...token,
-              [payload.tokenOwner]: [ ...tokenOwner, payload.spender ],
+              [payload.tokenOwner]: [...tokenOwner, payload.spender],
             },
           },
         },
@@ -495,7 +496,7 @@ export default function web3connectReducer(state = initialState, { type, payload
         ...state,
         transactions: {
           ...state.transactions,
-          pending: [ ...state.transactions.pending, payload ],
+          pending: [...state.transactions.pending, payload],
         },
       };
     case REMOVE_PENDING_TX:
@@ -515,7 +516,7 @@ export default function web3connectReducer(state = initialState, { type, payload
         ...state,
         transactions: {
           ...state.transactions,
-          confirmed: [ ...state.transactions.confirmed, payload ],
+          confirmed: [...state.transactions.confirmed, payload],
         },
       };
     default:
@@ -530,7 +531,7 @@ export class _Web3Connect extends Component {
   };
 
   static defaultProps = {
-    initialize() {}
+    initialize() { }
   };
 
   componentWillMount() {

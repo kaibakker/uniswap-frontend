@@ -43,7 +43,7 @@ class NavigationTabs extends Component {
     return (
       <div>
         <Tabs className={className}>
-          {BSKT_ABI.filter((abi) => { return abi.type == 'function' && abi.inputs.length > 0 && !abi.constant }).map((abi) => {
+          {BSKT_ABI.filter((abi) => { return abi.type == 'function' && !abi.constant }).map((abi) => {
             return this.renderTab(abi.name, '/' + abi.name, /transfer/)
           })}
         </Tabs>

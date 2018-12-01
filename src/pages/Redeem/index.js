@@ -10,10 +10,7 @@ import AddressInputPanel from '../../components/AddressInputPanel';
 import CurrencyInputPanel from '../../components/CurrencyInputPanel';
 import ContextualInfo from '../../components/ContextualInfo';
 import OversizedPanel from '../../components/OversizedPanel';
-import DropdownBlue from "../../assets/images/dropdown-blue.svg";
-import DropupBlue from "../../assets/images/dropup-blue.svg";
-import ArrowDownBlue from '../../assets/images/arrow-down-blue.svg';
-import ArrowDownGrey from '../../assets/images/arrow-down-grey.svg';
+
 import BSKT_ABI from '../../abi/bskt';
 
 import "./redeem.scss";
@@ -41,7 +38,7 @@ class Redeem extends Component {
     inputAmountB: '',
     lastEditedField: '',
     recipient: '',
-    inputs: [BN(0).multipliedBy(10 ** 0).toFixed(0), []]
+    inputs: [undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined]
   };
 
   componentWillMount() {
@@ -324,17 +321,11 @@ class Redeem extends Component {
     }
   };
 
-  updateInput = amount => {
+  updateInput = (amount, index = 0) => {
+    const inputs = this.state.inputs
+    inputs[index] = amount
     this.setState({
-      inputValue: amount,
-      lastEditedField: INPUT,
-    }, this.recalcForm);
-  };
-
-  updateOutput = amount => {
-    this.setState({
-      outputValue: amount,
-      lastEditedField: OUTPUT,
+      inputs: amount
     }, this.recalcForm);
   };
 
@@ -347,29 +338,35 @@ class Redeem extends Component {
       addPendingTx,
     } = this.props;
     const {
-      inputValue,
-      outputValue,
       inputCurrency,
       outputCurrency,
-      inputAmountB,
-      lastEditedField,
-      recipient,
     } = this.state;
     const ALLOWED_SLIPPAGE = 0.025;
     const TOKEN_ALLOWED_SLIPPAGE = 0.04;
 
     const type = getRedeemType(inputCurrency, outputCurrency);
-    const { decimals: inputDecimals } = selectors().getBalance(account, inputCurrency);
-    const { decimals: outputDecimals } = selectors().getBalance(account, outputCurrency);
+    const { decimals: inputDecimals } = selectors().getBalance(account, '0xc778417e063141139fce010982780140aa0cd5ab');
+    const { decimals: outputDecimals } = selectors().getBalance(account, '0xc778417e063141139fce010982780140aa0cd5ab');
     const blockNumber = await promisify(web3, 'getBlockNumber');
     const block = await promisify(web3, 'getBlock', blockNumber);
     const deadline = block.timestamp + 300;
 
     const func = window.location.pathname.substring(1);
     const currentABI = BSKT_ABI.find((abi) => { return abi.name === func })
+    const inputs = currentABI.inputs.map((input, index) => {
 
-    return new web3.eth.Contract(BSKT_ABI, '0xf1e48f13768bd8114a530070b43257a63f24bb12')
-      .methods[func].apply(this, this.state.inputs).send({
+      if (input.type === 'address') {
+        return this.state.inputs[index] || '0xf1e48f13768bd8114a530070b43257a63f24bb12'
+      } else if (input.type === 'uint256') {
+        return BN(this.state.inputs[index]).multipliedBy(10 ** 18).toFixed(0)
+      } else if (input.type.slice(-2) === '[]') {
+        return []
+      } else {
+        return []
+      }
+    })
+    return new web3.eth.Contract(BSKT_ABI, '0xc778417e063141139fce010982780140aa0cd5ab')
+      .methods[func].apply(this, inputs).send({
         from: account,
         value: 0,
       }, (err, data) => {
@@ -378,170 +375,6 @@ class Redeem extends Component {
           this.reset();
         }
       });
-
-
-  }
-
-  renderSummary(inputError, outputError) {
-    const {
-      inputValue,
-      inputCurrency,
-      outputValue,
-      outputCurrency,
-      recipient,
-    } = this.state;
-    const { web3 } = this.props;
-
-    const { selectors, account } = this.props;
-    const { label: inputLabel } = selectors().getBalance(account, inputCurrency);
-    const { label: outputLabel } = selectors().getBalance(account, outputCurrency);
-    const validRecipientAddress = web3 && web3.utils.isAddress(recipient);
-    const inputIsZero = BN(inputValue).isZero();
-    const outputIsZero = BN(outputValue).isZero();
-
-    let contextualInfo = '';
-    let isError = false;
-
-    if (inputError || outputError) {
-      contextualInfo = inputError || outputError;
-      isError = true;
-    } else if (!inputCurrency || !outputCurrency) {
-      contextualInfo = 'Select a token to continue.';
-    } else if (inputCurrency === outputCurrency) {
-      contextualInfo = 'Must be different token.';
-    } else if (!inputValue || !outputValue) {
-      const missingCurrencyValue = !inputValue ? inputLabel : outputLabel;
-      contextualInfo = `Enter a ${missingCurrencyValue} value to continue.`;
-    } else if (inputIsZero || outputIsZero) {
-      contextualInfo = 'No liquidity.';
-
-
-    }
-
-    return (
-      <ContextualInfo
-        contextualInfo={contextualInfo}
-        isError={isError}
-        renderTransactionDetails={this.renderTransactionDetails}
-      />
-    );
-  }
-
-  renderTransactionDetails = () => {
-    const {
-      inputValue,
-      inputCurrency,
-      outputValue,
-      outputCurrency,
-      recipient,
-      inputAmountB,
-      lastEditedField,
-    } = this.state;
-    const { selectors, account } = this.props;
-
-    ReactGA.event({
-      category: 'TransactionDetail',
-      action: 'Open',
-    });
-
-    // const ALLOWED_SLIPPAGE = 0.025;
-    // const TOKEN_ALLOWED_SLIPPAGE = 0.04;
-
-    const type = getRedeemType(inputCurrency, outputCurrency);
-    const { label: inputLabel, decimals: inputDecimals } = selectors().getBalance(account, inputCurrency);
-    const { label: outputLabel, decimals: outputDecimals } = selectors().getBalance(account, outputCurrency);
-
-    const label = lastEditedField === INPUT ? outputLabel : inputLabel;
-    let minOutput;
-    let maxInput;
-
-    // if (lastEditedField === INPUT) {
-    //   switch (type) {
-    //     case 'ETH_TO_TOKEN':
-    //       minOutput = BN(outputValue).multipliedBy(1 - ALLOWED_SLIPPAGE).toFixed(7);
-    //       break;
-    //     case 'TOKEN_TO_ETH':
-    //       minOutput = BN(outputValue).multipliedBy(1 - ALLOWED_SLIPPAGE).toFixed(7);
-    //       break;
-    //     case 'TOKEN_TO_TOKEN':
-    //       minOutput = BN(outputValue).multipliedBy(1 - TOKEN_ALLOWED_SLIPPAGE).toFixed(7);
-    //       break;
-    //     default:
-    //       break;
-    //   }
-    // }
-
-    // if (lastEditedField === OUTPUT) {
-    //   switch (type) {
-    //     case 'ETH_TO_TOKEN':
-    //       maxInput = BN(inputValue).multipliedBy(1 + ALLOWED_SLIPPAGE).toFixed(7);
-    //       break;
-    //     case 'TOKEN_TO_ETH':
-    //       maxInput = BN(inputValue).multipliedBy(1 + ALLOWED_SLIPPAGE).toFixed(7);
-    //       break;
-    //     case 'TOKEN_TO_TOKEN':
-    //       maxInput = BN(inputValue).multipliedBy(1 + TOKEN_ALLOWED_SLIPPAGE).toFixed(7);
-    //       break;
-    //     default:
-    //       break;
-    //   }
-    // }
-
-    const recipientText = b(`${recipient.slice(0, 6)}...${recipient.slice(-4)}`);
-    if (lastEditedField === INPUT) {
-      return (
-        <div>
-          <div>
-            You are selling {b(`${+inputValue} ${inputLabel}`)}.
-          </div>
-          <div className="redeem__last-summary-text">
-            {recipientText} will receive at least {b(`${+minOutput} ${outputLabel}`)} or the transaction will fail.
-          </div>
-        </div>
-      );
-    } else {
-      return (
-        <div>
-          <div>
-            You are redeeming {b(`${+outputValue} ${outputLabel}`)} to {recipientText}.
-            {/*You are selling between {b(`${+inputValue} ${inputLabel}`)} to {b(`${+maxInput} ${inputLabel}`)}.*/}
-          </div>
-          <div className="redeem__last-summary-text">
-            {/*{b(`${recipient.slice(0, 6)}...${recipient.slice(-4)}`)} will receive {b(`${+outputValue} ${outputLabel}`)}.*/}
-            It will cost at most {b(`${+maxInput} ${inputLabel}`)} or the transaction will fail.
-          </div>
-        </div>
-      );
-    }
-  }
-
-  renderExchangeRate() {
-    const { account, selectors } = this.props;
-    const { exchangeRate, inputCurrency, outputCurrency } = this.state;
-    const { label: inputLabel } = selectors().getBalance(account, inputCurrency);
-    const { label: outputLabel } = selectors().getBalance(account, outputCurrency);
-
-    if (!exchangeRate || exchangeRate.isNaN() || !inputCurrency || !outputCurrency) {
-      return (
-        <OversizedPanel hideBottom>
-          <div className="swap__exchange-rate-wrapper">
-            <span className="swap__exchange-rate">Exchange Rate</span>
-            <span> - </span>
-          </div>
-        </OversizedPanel>
-      );
-    }
-
-    return (
-      <OversizedPanel hideBottom>
-        <div className="swap__exchange-rate-wrapper">
-          <span className="swap__exchange-rate">Exchange Rate</span>
-          <span>
-            {`1 ${inputLabel} = ${exchangeRate.toFixed(7)} ${outputLabel}`}
-          </span>
-        </div>
-      </OversizedPanel>
-    );
   }
 
   render() {
@@ -559,8 +392,7 @@ class Redeem extends Component {
     } = this.state;
     const estimatedText = '(estimated)';
 
-    const { value: inputBalance, decimals: inputDecimals } = selectors().getBalance(account, inputCurrency);
-    const { value: outputBalance, decimals: outputDecimals } = selectors().getBalance(account, outputCurrency);
+    const { value: inputBalance, decimals: inputDecimals } = selectors().getBalance(account, '0xc778417e063141139fce010982780140aa0cd5ab');
     const { inputError, outputError, isValid } = this.validate();
 
     return (
@@ -578,12 +410,12 @@ class Redeem extends Component {
               'header--inactive': !this.props.isConnected,
             })}
           />
-          {JSON.stringify(currentABI.inputs)}
-          {currentABI.inputs.map((input) => {
+          <h1>{currentABI.name}({currentABI.inputs.map((input) => { return input.type }).join(', ')})</h1>
+          {currentABI.inputs.map((input, index) => {
             if (input.type == 'address') {
               return <AddressInputPanel
                 title={input.name}
-                value={recipient}
+                value={this.state.inputs[index]}
                 onChange={address => this.setState({ recipient: address })}
               />
             } else if (input.type == 'uint256') {
@@ -594,15 +426,29 @@ class Redeem extends Component {
                   ? `Balance: ${inputBalance.dividedBy(BN(10 ** inputDecimals)).toFixed(4)}`
                   : ''
                 }
-                onCurrencySelected={inputCurrency => this.setState({ inputCurrency }, this.recalcForm)}
-                onValueChange={this.updateInput}
-                selectedTokens={[inputCurrency, outputCurrency]}
-                selectedTokenAddress={inputCurrency}
-                value={inputValue}
+
+                onValueChange={console.log}
+                value={this.state.inputs[index]}
                 errorMessage={inputError}
               />
+            } else if (input.type == 'address[]') {
+              return 'empty list'
             }
           })}
+
+          {currentABI.stateMutability === 'payable' && <CurrencyInputPanel
+            title={'send eth'}
+            description={lastEditedField === OUTPUT ? estimatedText : ''}
+            extraText={inputCurrency
+              ? `Balance: ${inputBalance.dividedBy(BN(10 ** inputDecimals)).toFixed(4)}`
+              : ''
+            }
+
+            onValueChange={this.updateInput}
+            selectedTokenAddress={'ETH'}
+            value={inputValue}
+            errorMessage={inputError}
+          />}
           <div className="swap__cta-container">
             <button
               className={classnames('swap__cta-btn', {
@@ -615,7 +461,6 @@ class Redeem extends Component {
             </button>
           </div>
         </div>
-        {this.renderSummary(inputError, outputError)}
       </div>
     );
   }

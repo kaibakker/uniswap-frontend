@@ -28,6 +28,26 @@
 }, {
     "constant": false,
     "inputs": [{
+        "name": "baseUnits",
+        "type": "uint256",
+        "default": "0"
+    }],
+    "name": "unwrap",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+}, {
+    "constant": false,
+    "inputs": [],
+    "name": "wrap",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "payable",
+    "type": "function"
+}, {
+    "constant": false,
+    "inputs": [{
         "name": "_spender",
         "type": "address"
     }, {

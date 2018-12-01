@@ -11,7 +11,7 @@ import ContextualInfo from "../../components/ContextualInfo";
 import OversizedPanel from "../../components/OversizedPanel";
 import ArrowDownBlue from "../../assets/images/arrow-down-blue.svg";
 import ArrowDownGrey from "../../assets/images/arrow-down-grey.svg";
-import EXCHANGE_ABI from "../../abi/bskt";
+import EXCHANGE_ABI from "../../abi/exchange";
 import promisify from "../../helpers/web3-promisfy";
 import ReactGA from "react-ga";
 

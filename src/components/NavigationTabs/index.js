@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { dismissBetaMessage } from '../../ducks/app';
 import { Tab, Tabs } from "../Tab";
-import BSKT_ABI from '../../abi/bskt';
+import BSKT_ABI from '../../abi/exchange';
 
 import './beta-message.scss';
 
@@ -44,7 +44,7 @@ class NavigationTabs extends Component {
       <div>
         <Tabs className={className}>
           {BSKT_ABI.filter((abi) => { return abi.type == 'function' && !abi.constant }).map((abi) => {
-            return this.renderTab(abi.name, '/' + abi.name, /transfer/)
+            return this.renderTab(abi.name, '/0xc778417e063141139fce010982780140aa0cd5ab/' + abi.name, /t/)
           })}
         </Tabs>
         {

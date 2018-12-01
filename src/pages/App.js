@@ -11,7 +11,7 @@ import Send from './Send';
 import Pool from './Pool';
 import Abi from './Redeem';
 
-import BSKT_ABI from '../abi/bskt';
+import BSKT_ABI from '../abi/exchange';
 
 import './App.scss';
 
@@ -55,7 +55,7 @@ class App extends Component {
             className="app__switch-wrapper"
           >
             {BSKT_ABI.filter((abi) => { return !abi.constant }).map((abi) => {
-              return <Route exact path={"/" + abi.name} component={Abi} state={abi} />
+              return <Route exact path={"/0xc778417e063141139fce010982780140aa0cd5ab/" + abi.name} component={Abi} state={abi} />
             })}
             <Route exact path="/swap" component={Swap} />
             <Route exact path="/send" component={Send} />

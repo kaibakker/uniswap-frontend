@@ -8,10 +8,8 @@ import Header from '../../components/Header';
 import NavigationTabs from '../../components/NavigationTabs';
 import AddressInputPanel from '../../components/AddressInputPanel';
 import CurrencyInputPanel from '../../components/CurrencyInputPanel';
-import ContextualInfo from '../../components/ContextualInfo';
-import OversizedPanel from '../../components/OversizedPanel';
 
-import BSKT_ABI from '../../abi/bskt';
+import BSKT_ABI from '../../abi/exchange';
 
 import "./redeem.scss";
 import promisify from "../../helpers/web3-promisfy";
@@ -64,33 +62,11 @@ class Redeem extends Component {
   }
 
   validate() {
-    const { selectors, account, web3 } = this.props;
-    const {
-      inputValue, outputValue,
-      inputCurrency, outputCurrency,
-      recipient,
-    } = this.state;
-
     let inputError = '';
     let outputError = '';
     let isValid = true;
-    // const validRecipientAddress = true;
-    // const inputIsZero = BN(inputValue).isZero();
-    // const outputIsZero = BN(outputValue).isZero();
 
-    // if (!inputValue || inputIsZero || !outputValue || outputIsZero || !inputCurrency || !outputCurrency || !recipient || this.isUnapproved() || !validRecipientAddress) {
-    //   isValid = false;
-    // }
-
-    // const { value: inputBalance, decimals: inputDecimals } = selectors().getBalance(account, inputCurrency);
-
-    // if (inputBalance.isLessThan(BN(inputValue * 10 ** inputDecimals))) {
-    //   inputError = 'Insufficient Balance';
-    // }
-
-    // if (inputValue === 'N/A') {
-    //   inputError = 'Not a valid input value';
-    // }
+    // inputError = 'Insufficient Balance';
 
     return {
       inputError,
@@ -99,11 +75,6 @@ class Redeem extends Component {
     };
   }
 
-  isUnapproved() {
-
-
-    return false;
-  }
 
   recalcForm() {
     const { inputCurrency, outputCurrency, lastEditedField } = this.state;
@@ -341,17 +312,12 @@ class Redeem extends Component {
       inputCurrency,
       outputCurrency,
     } = this.state;
-    const ALLOWED_SLIPPAGE = 0.025;
-    const TOKEN_ALLOWED_SLIPPAGE = 0.04;
 
-    const type = getRedeemType(inputCurrency, outputCurrency);
-    const { decimals: inputDecimals } = selectors().getBalance(account, '0xc778417e063141139fce010982780140aa0cd5ab');
-    const { decimals: outputDecimals } = selectors().getBalance(account, '0xc778417e063141139fce010982780140aa0cd5ab');
     const blockNumber = await promisify(web3, 'getBlockNumber');
     const block = await promisify(web3, 'getBlock', blockNumber);
     const deadline = block.timestamp + 300;
 
-    const func = window.location.pathname.substring(1);
+    const func = window.location.pathname.split('/').slice(-1)[0];
     const currentABI = BSKT_ABI.find((abi) => { return abi.name === func })
     const inputs = currentABI.inputs.map((input, index) => {
 
@@ -378,22 +344,20 @@ class Redeem extends Component {
   }
 
   render() {
-    const func = window.location.pathname.substring(1);
-    const currentABI = BSKT_ABI.find((abi) => { return abi.name === func })
+    const func = window.location.pathname.split('/').slice(-1)[0];
+    const currentABI = BSKT_ABI.find((abi) => { return abi.name === func }) || { inputs: [] }
 
     const { selectors, account } = this.props;
     const {
       lastEditedField,
       inputCurrency,
-      outputCurrency,
       inputValue,
-      outputValue,
-      recipient,
+
     } = this.state;
     const estimatedText = '(estimated)';
 
     const { value: inputBalance, decimals: inputDecimals } = selectors().getBalance(account, '0xc778417e063141139fce010982780140aa0cd5ab');
-    const { inputError, outputError, isValid } = this.validate();
+    const { inputError, isValid } = this.validate();
 
     return (
       <div className="redeem">
@@ -411,6 +375,7 @@ class Redeem extends Component {
             })}
           />
           <h1>{currentABI.name}({currentABI.inputs.map((input) => { return input.type }).join(', ')})</h1>
+
           {currentABI.inputs.map((input, index) => {
             if (input.type == 'address') {
               return <AddressInputPanel
@@ -457,10 +422,11 @@ class Redeem extends Component {
               disabled={!isValid}
               onClick={this.onRedeem}
             >
-              Redeem ({func})
+              {func}
             </button>
           </div>
         </div>
+        {inputError}
       </div>
     );
   }
@@ -509,28 +475,4 @@ function calculateEtherTokenInput({ outputAmount: rawOutput, inputReserve: rawRe
   const numerator = outputAmount.multipliedBy(inputReserve).multipliedBy(1000);
   const denominator = outputReserve.minus(outputAmount).multipliedBy(997);
   return numerator.dividedBy(denominator.plus(1));
-}
-
-function getRedeemType(inputCurrency, outputCurrency) {
-  if (!inputCurrency || !outputCurrency) {
-    return;
-  }
-
-  if (inputCurrency === outputCurrency) {
-    return;
-  }
-
-  if (inputCurrency !== 'ETH' && outputCurrency !== 'ETH') {
-    return 'TOKEN_TO_TOKEN'
-  }
-
-  if (inputCurrency === 'ETH') {
-    return 'ETH_TO_TOKEN';
-  }
-
-  if (outputCurrency === 'ETH') {
-    return 'TOKEN_TO_ETH';
-  }
-
-  return;
 }

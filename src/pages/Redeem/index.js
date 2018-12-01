@@ -14,7 +14,7 @@ import DropdownBlue from "../../assets/images/dropdown-blue.svg";
 import DropupBlue from "../../assets/images/dropup-blue.svg";
 import ArrowDownBlue from '../../assets/images/arrow-down-blue.svg';
 import ArrowDownGrey from '../../assets/images/arrow-down-grey.svg';
-import EXCHANGE_ABI from '../../abi/bskt';
+import BSKT_ABI from '../../abi/bskt';
 
 import "./redeem.scss";
 import promisify from "../../helpers/web3-promisfy";
@@ -23,6 +23,7 @@ import ReactGA from "react-ga";
 
 const INPUT = 0;
 const OUTPUT = 1;
+
 
 class Redeem extends Component {
   static propTypes = {
@@ -40,6 +41,7 @@ class Redeem extends Component {
     inputAmountB: '',
     lastEditedField: '',
     recipient: '',
+    inputs: [BN(0).multipliedBy(10 ** 0).toFixed(0), []]
   };
 
   componentWillMount() {
@@ -75,23 +77,23 @@ class Redeem extends Component {
     let inputError = '';
     let outputError = '';
     let isValid = true;
-    const validRecipientAddress = true;
-    const inputIsZero = BN(inputValue).isZero();
-    const outputIsZero = BN(outputValue).isZero();
+    // const validRecipientAddress = true;
+    // const inputIsZero = BN(inputValue).isZero();
+    // const outputIsZero = BN(outputValue).isZero();
 
-    if (!inputValue || inputIsZero || !outputValue || outputIsZero || !inputCurrency || !outputCurrency || !recipient || this.isUnapproved() || !validRecipientAddress) {
-      isValid = false;
-    }
+    // if (!inputValue || inputIsZero || !outputValue || outputIsZero || !inputCurrency || !outputCurrency || !recipient || this.isUnapproved() || !validRecipientAddress) {
+    //   isValid = false;
+    // }
 
-    const { value: inputBalance, decimals: inputDecimals } = selectors().getBalance(account, inputCurrency);
+    // const { value: inputBalance, decimals: inputDecimals } = selectors().getBalance(account, inputCurrency);
 
-    if (inputBalance.isLessThan(BN(inputValue * 10 ** inputDecimals))) {
-      inputError = 'Insufficient Balance';
-    }
+    // if (inputBalance.isLessThan(BN(inputValue * 10 ** inputDecimals))) {
+    //   inputError = 'Insufficient Balance';
+    // }
 
-    if (inputValue === 'N/A') {
-      inputError = 'Not a valid input value';
-    }
+    // if (inputValue === 'N/A') {
+    //   inputError = 'Not a valid input value';
+    // }
 
     return {
       inputError,
@@ -101,22 +103,7 @@ class Redeem extends Component {
   }
 
   isUnapproved() {
-    const { account, exchangeAddresses, selectors } = this.props;
-    const { inputCurrency, inputValue } = this.state;
 
-    if (!inputCurrency || inputCurrency === 'ETH') {
-      return false;
-    }
-
-    const { value: allowance, label, decimals } = selectors().getApprovals(
-      inputCurrency,
-      account,
-      exchangeAddresses.fromToken[inputCurrency]
-    );
-
-    if (label && allowance.isLessThan(BN(inputValue * 10 ** decimals || 0))) {
-      return true;
-    }
 
     return false;
   }
@@ -378,138 +365,22 @@ class Redeem extends Component {
     const block = await promisify(web3, 'getBlock', blockNumber);
     const deadline = block.timestamp + 300;
 
-    if (lastEditedField === INPUT) {
-      ReactGA.event({
-        category: type,
-        action: 'TransferInput',
-      });
-      // redeem input
-      switch (type) {
-        case 'ETH_TO_TOKEN':
-          new web3.eth.Contract(EXCHANGE_ABI, fromToken[outputCurrency])
-            .methods
-            .ethToTokenTransferInput(
-              BN(outputValue).multipliedBy(10 ** outputDecimals).multipliedBy(1 - ALLOWED_SLIPPAGE).toFixed(0),
-              deadline,
-              recipient,
-            )
-            .redeem({
-              from: account,
-              value: BN(inputValue).multipliedBy(10 ** 18).toFixed(0),
-            }, (err, data) => {
-              if (!err) {
-                addPendingTx(data);
-                this.reset();
-              }
-            });
-          break;
-        case 'TOKEN_TO_ETH':
-          new web3.eth.Contract(EXCHANGE_ABI, fromToken[inputCurrency])
-            .methods
-            .tokenToEthTransferInput(
-              BN(inputValue).multipliedBy(10 ** inputDecimals).toFixed(0),
-              BN(outputValue).multipliedBy(10 ** outputDecimals).multipliedBy(1 - ALLOWED_SLIPPAGE).toFixed(0),
-              deadline,
-              recipient,
-            )
-            .redeem({ from: account }, (err, data) => {
-              if (!err) {
-                addPendingTx(data);
-                this.reset();
-              }
-            });
-          break;
-        case 'TOKEN_TO_TOKEN':
-          new web3.eth.Contract(EXCHANGE_ABI, fromToken[inputCurrency])
-            .methods
-            .tokenToTokenTransferInput(
-              BN(inputValue).multipliedBy(10 ** inputDecimals).toFixed(0),
-              BN(outputValue).multipliedBy(10 ** outputDecimals).multipliedBy(1 - TOKEN_ALLOWED_SLIPPAGE).toFixed(0),
-              '1',
-              deadline,
-              recipient,
-              outputCurrency,
-            )
-            .redeem({ from: account }, (err, data) => {
-              if (!err) {
-                addPendingTx(data);
-                this.reset();
-              }
-            });
-          break;
-        default:
-          break;
-      }
-    }
+    const func = window.location.pathname.substring(1);
+    const currentABI = BSKT_ABI.find((abi) => { return abi.name === func })
 
-    if (lastEditedField === OUTPUT) {
-      // redeem output
-      ReactGA.event({
-        category: type,
-        action: 'TransferOutput',
+    return new web3.eth.Contract(BSKT_ABI, '0xf1e48f13768bd8114a530070b43257a63f24bb12')
+      .methods[func].apply(this, this.state.inputs).send({
+        from: account,
+        value: 0,
+      }, (err, data) => {
+        if (!err) {
+          addPendingTx(data);
+          this.reset();
+        }
       });
-      switch (type) {
-        case 'ETH_TO_TOKEN':
-          new web3.eth.Contract(EXCHANGE_ABI, fromToken[outputCurrency])
-            .methods
-            .ethToTokenTransferOutput(
-              BN(outputValue).multipliedBy(10 ** outputDecimals).toFixed(0),
-              deadline,
-              recipient,
-            )
-            .redeem({
-              from: account,
-              value: BN(inputValue).multipliedBy(10 ** inputDecimals).multipliedBy(1 + ALLOWED_SLIPPAGE).toFixed(0),
-            }, (err, data) => {
-              if (!err) {
-                addPendingTx(data);
-                this.reset();
-              }
-            });
-          break;
-        case 'TOKEN_TO_ETH':
-          new web3.eth.Contract(EXCHANGE_ABI, fromToken[inputCurrency])
-            .methods
-            .tokenToEthTransferOutput(
-              BN(outputValue).multipliedBy(10 ** outputDecimals).toFixed(0),
-              BN(inputValue).multipliedBy(10 ** inputDecimals).multipliedBy(1 + ALLOWED_SLIPPAGE).toFixed(0),
-              deadline,
-              recipient,
-            )
-            .redeem({ from: account }, (err, data) => {
-              if (!err) {
-                addPendingTx(data);
-                this.reset();
-              }
-            });
-          break;
-        case 'TOKEN_TO_TOKEN':
-          if (!inputAmountB) {
-            return;
-          }
 
-          new web3.eth.Contract(EXCHANGE_ABI, fromToken[inputCurrency])
-            .methods
-            .tokenToTokenTransferOutput(
-              BN(outputValue).multipliedBy(10 ** outputDecimals).toFixed(0),
-              BN(inputValue).multipliedBy(10 ** inputDecimals).multipliedBy(1 + TOKEN_ALLOWED_SLIPPAGE).toFixed(0),
-              inputAmountB.multipliedBy(1.2).toFixed(0),
-              deadline,
-              recipient,
-              outputCurrency,
-            )
-            .redeem({ from: account }, (err, data) => {
-              if (!err) {
-                addPendingTx(data);
-                this.reset();
-              }
-            });
-          break;
-        default:
-          break;
-      }
-    }
-  };
+
+  }
 
   renderSummary(inputError, outputError) {
     const {
@@ -543,8 +414,7 @@ class Redeem extends Component {
       contextualInfo = `Enter a ${missingCurrencyValue} value to continue.`;
     } else if (inputIsZero || outputIsZero) {
       contextualInfo = 'No liquidity.';
-    } else if (this.isUnapproved()) {
-      contextualInfo = 'Please unlock token to continue.';
+
 
     }
 
@@ -574,8 +444,8 @@ class Redeem extends Component {
       action: 'Open',
     });
 
-    const ALLOWED_SLIPPAGE = 0.025;
-    const TOKEN_ALLOWED_SLIPPAGE = 0.04;
+    // const ALLOWED_SLIPPAGE = 0.025;
+    // const TOKEN_ALLOWED_SLIPPAGE = 0.04;
 
     const type = getRedeemType(inputCurrency, outputCurrency);
     const { label: inputLabel, decimals: inputDecimals } = selectors().getBalance(account, inputCurrency);
@@ -585,37 +455,37 @@ class Redeem extends Component {
     let minOutput;
     let maxInput;
 
-    if (lastEditedField === INPUT) {
-      switch (type) {
-        case 'ETH_TO_TOKEN':
-          minOutput = BN(outputValue).multipliedBy(1 - ALLOWED_SLIPPAGE).toFixed(7);
-          break;
-        case 'TOKEN_TO_ETH':
-          minOutput = BN(outputValue).multipliedBy(1 - ALLOWED_SLIPPAGE).toFixed(7);
-          break;
-        case 'TOKEN_TO_TOKEN':
-          minOutput = BN(outputValue).multipliedBy(1 - TOKEN_ALLOWED_SLIPPAGE).toFixed(7);
-          break;
-        default:
-          break;
-      }
-    }
+    // if (lastEditedField === INPUT) {
+    //   switch (type) {
+    //     case 'ETH_TO_TOKEN':
+    //       minOutput = BN(outputValue).multipliedBy(1 - ALLOWED_SLIPPAGE).toFixed(7);
+    //       break;
+    //     case 'TOKEN_TO_ETH':
+    //       minOutput = BN(outputValue).multipliedBy(1 - ALLOWED_SLIPPAGE).toFixed(7);
+    //       break;
+    //     case 'TOKEN_TO_TOKEN':
+    //       minOutput = BN(outputValue).multipliedBy(1 - TOKEN_ALLOWED_SLIPPAGE).toFixed(7);
+    //       break;
+    //     default:
+    //       break;
+    //   }
+    // }
 
-    if (lastEditedField === OUTPUT) {
-      switch (type) {
-        case 'ETH_TO_TOKEN':
-          maxInput = BN(inputValue).multipliedBy(1 + ALLOWED_SLIPPAGE).toFixed(7);
-          break;
-        case 'TOKEN_TO_ETH':
-          maxInput = BN(inputValue).multipliedBy(1 + ALLOWED_SLIPPAGE).toFixed(7);
-          break;
-        case 'TOKEN_TO_TOKEN':
-          maxInput = BN(inputValue).multipliedBy(1 + TOKEN_ALLOWED_SLIPPAGE).toFixed(7);
-          break;
-        default:
-          break;
-      }
-    }
+    // if (lastEditedField === OUTPUT) {
+    //   switch (type) {
+    //     case 'ETH_TO_TOKEN':
+    //       maxInput = BN(inputValue).multipliedBy(1 + ALLOWED_SLIPPAGE).toFixed(7);
+    //       break;
+    //     case 'TOKEN_TO_ETH':
+    //       maxInput = BN(inputValue).multipliedBy(1 + ALLOWED_SLIPPAGE).toFixed(7);
+    //       break;
+    //     case 'TOKEN_TO_TOKEN':
+    //       maxInput = BN(inputValue).multipliedBy(1 + TOKEN_ALLOWED_SLIPPAGE).toFixed(7);
+    //       break;
+    //     default:
+    //       break;
+    //   }
+    // }
 
     const recipientText = b(`${recipient.slice(0, 6)}...${recipient.slice(-4)}`);
     if (lastEditedField === INPUT) {
@@ -675,6 +545,9 @@ class Redeem extends Component {
   }
 
   render() {
+    const func = window.location.pathname.substring(1);
+    const currentABI = BSKT_ABI.find((abi) => { return abi.name === func })
+
     const { selectors, account } = this.props;
     const {
       lastEditedField,
@@ -705,50 +578,31 @@ class Redeem extends Component {
               'header--inactive': !this.props.isConnected,
             })}
           />
-          <CurrencyInputPanel
-            title="Input"
-            description={lastEditedField === OUTPUT ? estimatedText : ''}
-            extraText={inputCurrency
-              ? `Balance: ${inputBalance.dividedBy(BN(10 ** inputDecimals)).toFixed(4)}`
-              : ''
+          {JSON.stringify(currentABI.inputs)}
+          {currentABI.inputs.map((input) => {
+            if (input.type == 'address') {
+              return <AddressInputPanel
+                title={input.name}
+                value={recipient}
+                onChange={address => this.setState({ recipient: address })}
+              />
+            } else if (input.type == 'uint256') {
+              return <CurrencyInputPanel
+                title={input.name}
+                description={lastEditedField === OUTPUT ? estimatedText : ''}
+                extraText={inputCurrency
+                  ? `Balance: ${inputBalance.dividedBy(BN(10 ** inputDecimals)).toFixed(4)}`
+                  : ''
+                }
+                onCurrencySelected={inputCurrency => this.setState({ inputCurrency }, this.recalcForm)}
+                onValueChange={this.updateInput}
+                selectedTokens={[inputCurrency, outputCurrency]}
+                selectedTokenAddress={inputCurrency}
+                value={inputValue}
+                errorMessage={inputError}
+              />
             }
-            onCurrencySelected={inputCurrency => this.setState({ inputCurrency }, this.recalcForm)}
-            onValueChange={this.updateInput}
-            selectedTokens={[inputCurrency, outputCurrency]}
-            selectedTokenAddress={inputCurrency}
-            value={inputValue}
-            errorMessage={inputError}
-          />
-          <OversizedPanel>
-            <div className="swap__down-arrow-background">
-              <img className="swap__down-arrow" src={isValid ? ArrowDownBlue : ArrowDownGrey} />
-            </div>
-          </OversizedPanel>
-          <CurrencyInputPanel
-            title="Output"
-            description={lastEditedField === INPUT ? estimatedText : ''}
-            extraText={outputCurrency
-              ? `Balance: ${outputBalance.dividedBy(BN(10 ** outputDecimals)).toFixed(4)}`
-              : ''
-            }
-            onCurrencySelected={outputCurrency => this.setState({ outputCurrency }, this.recalcForm)}
-            onValueChange={this.updateOutput}
-            selectedTokens={[inputCurrency, outputCurrency]}
-            value={outputValue}
-            selectedTokenAddress={outputCurrency}
-            errorMessage={outputError}
-            disableUnlock
-          />
-          <OversizedPanel>
-            <div className="swap__down-arrow-background">
-              <img className="swap__down-arrow" src={isValid ? ArrowDownBlue : ArrowDownGrey} />
-            </div>
-          </OversizedPanel>
-          <AddressInputPanel
-            value={recipient}
-            onChange={address => this.setState({ recipient: address })}
-          />
-          {this.renderExchangeRate()}
+          })}
           <div className="swap__cta-container">
             <button
               className={classnames('swap__cta-btn', {
@@ -757,7 +611,7 @@ class Redeem extends Component {
               disabled={!isValid}
               onClick={this.onRedeem}
             >
-              Redeem
+              Redeem ({func})
             </button>
           </div>
         </div>

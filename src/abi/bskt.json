@@ -13,10 +13,12 @@
     "constant": false,
     "inputs": [{
         "name": "baseUnits",
-        "type": "uint256"
+        "type": "uint256",
+        "default": "getBalance(this.address)"
     }, {
         "name": "tokensToSkip",
-        "type": "address[]"
+        "type": "address[]",
+        "default": []
     }],
     "name": "redeem",
     "outputs": [],

@@ -57,17 +57,18 @@
   &__input {
     font-size: 1.5rem;
     @extend %borderless-input;
+
     &--error {
       color: $salmon-red;
     }
 
     &[type='number'] {
-        -moz-appearance:textfield;
+      -moz-appearance: textfield;
     }
 
     &::-webkit-outer-spin-button,
     &::-webkit-inner-spin-button {
-        -webkit-appearance: none;
+      -webkit-appearance: none;
     }
   }
 
@@ -129,6 +130,7 @@
 
     &--pending {
       line-height: .9;
+
       .loader {
         height: .5rem;
         width: .5rem;
@@ -206,6 +208,7 @@
 
     &--searching {
       justify-content: center;
+
       .loader {
         margin-right: 1rem;
       }
@@ -233,6 +236,7 @@
       color: $white;
       justify-content: center;
       background-color: $malibu-blue;
+
       &:hover {
         background-color: lighten($malibu-blue, 1)
       }
@@ -254,7 +258,7 @@
   }
 
   @media only screen and (min-device-width : 768px) {
-    max-width: 560px;
+    max-width: 860px;
     max-height: 768px;
     position: absolute;
     margin-left: auto;

@@ -97,6 +97,34 @@ Exchange.prototype.syncBalances = async function () {
     this.totalSupply = await exchange.methods.totalSupply().call();
 }
 
+Exchange.prototype.syncBalancesWithLogs = async function () {
+    const exchange = new web3.eth.Contract(EXCHANGE_ABI, this.exchangeAddress);
+    const logs = await web3.eth.getPastLogs({ topics: [] });
+
+    logs.forEach(({ data, topics, transactionHash }) => {
+        switch (topics[0]) {
+            case "0x7f4091b46c33e918a0f3aa42307641d17bb67029427a5369e54b353984238705": //EthPurchase
+                console.log(topics);
+                this.tokenToInput(BN(topics[1]))
+            case "0xcd60aa75dea3072fbc07ae6d7d856b5dc5f4eee88854f5b4abf7b680ef8bc50f": // TokenPurchase
+                this.ethToTokenInput(BN(topics[1]))
+            case "0x06239653922ac7bea6aa2b19dc486b9361821d37712eb796adfd38d81de278ca":  // addLiquidity
+                this.addLiquidity(BN(topics[1]))
+            case "0x06239653922ac7bea6aa2b19dc486b9361821d37712eb796adfd38d81de278ca":  // removeLiquidity
+                this.removeLiquidity(BN(topics[1]))
+
+            // case "0x06239653922ac7bea6aa2b19dc486b9361821d37712eb796adfd38d81de278ca":  // addLiquidity
+
+        }
+        // TokenPurchase: event({buyer: indexed(address), eth_sold: indexed(uint256(wei)), tokens_bought: indexed(uint256)})
+        // EthPurchase: event({buyer: indexed(address), tokens_sold: indexed(uint256), eth_bought: indexed(uint256(wei))})
+        // AddLiquidity: event({provider: indexed(address), eth_amount: indexed(uint256(wei)), token_amount: indexed(uint256)})
+        // RemoveLiquidity: event({provider: indexed(address), eth_amount: indexed(uint256(wei)), token_amount: indexed(uint256)})
+    })
+    console.log(this)
+
+}
+
 
 // # @notice Deposit ETH and Tokens (self.token) at current ratio to mint UNI tokens.
 // # @dev min_amount has a djfferent meaning when total UNI supply is 0.
@@ -134,7 +162,7 @@ Exchange.prototype.syncBalances = async function () {
 //         log.Transfer(ZERO_ADDRESS, msg.sender, initial_liquidity)
 //         return initial_liquidity
 
-Exchange.prototype.addLiquidity = function (value = 1, min_liquidity = 1, max_tokens = 10 ** 9, deadline = true) {
+Exchange.prototype.addLiquidity = function (value = BN(1), min_liquidity = BN(1), max_tokens = BN(10 ** 9), deadline = true) {
     if (!((max_tokens > 0 && value > 0))) return;
 
     if (this.totalSupply > 0) {
@@ -179,7 +207,7 @@ Exchange.prototype.addLiquidity = function (value = 1, min_liquidity = 1, max_to
 //     log.Transfer(msg.sender, ZERO_ADDRESS, amount)
 //     return eth_amount, token_amount
 
-Exchange.prototype.removeLiquidity = function (amount = 1, min_eth = 1, min_tokens = 1, deadline = true) {
+Exchange.prototype.removeLiquidity = function (amount = BN(1), min_eth = BN(1), min_tokens = BN(1), deadline = true) {
     if (!((amount > 0 && deadline) && (min_eth > 0 && min_tokens > 0))) return;
     if (!(this.totalSupply > 0)) return;
     const eth_amount = amount * this.ethReserve / this.totalSupply
@@ -207,7 +235,7 @@ Exchange.prototype.removeLiquidity = function (amount = 1, min_eth = 1, min_toke
 //     return numerator / denominator
 
 
-Exchange.prototype.getInputPrice = function (input_amount = 1, input_reserve = null, output_reserve = null) {
+Exchange.prototype.getInputPrice = function (input_amount = BN(1), input_reserve = null, output_reserve = null) {
     if (!input_reserve) input_reserve = this.ethReserve;
     if (!output_reserve) output_reserve = this.tokenReserve;
     if (!(input_reserve > 0 && output_reserve > 0)) return;
@@ -230,7 +258,7 @@ Exchange.prototype.getInputPrice = function (input_amount = 1, input_reserve = n
 //     denominator: uint256 = (output_reserve - output_amount) * 997
 //     return numerator / denominator + 1
 
-Exchange.prototype.getOutputPrice = function (output_amount = 1, input_reserve = null, output_reserve = null) {
+Exchange.prototype.getOutputPrice = function (output_amount = BN(1), input_reserve = null, output_reserve = null) {
     if (!(input_reserve > 0 && output_reserve > 0)) return;
     const numerator = input_reserve * output_amount * 1000
     const denominator = (output_reserve - output_amount) * 997
@@ -246,7 +274,7 @@ Exchange.prototype.getOutputPrice = function (output_amount = 1, input_reserve =
 //     assert self.token.transfer(recipient, tokens_bought)
 //     log.TokenPurchase(buyer, eth_sold, tokens_bought)
 //     return tokens_bought
-Exchange.prototype.ethToTokenInput = function (eth_sold = 1, min_tokens = 1, deadline = true, buyer = true, recipient = true) {
+Exchange.prototype.ethToTokenInput = function (eth_sold = BN(1), min_tokens = BN(1), deadline = true, buyer = true, recipient = true) {
     if (!((eth_sold > 0 && min_tokens > 0))) return
     // const this.tokenReserve = this.token.balanceOf(this)
     const tokens_bought = this.getInputPrice((eth_sold), this.ethReserve, this.tokenReserve)
@@ -302,7 +330,7 @@ Exchange.prototype.ethToTokenInput = function (eth_sold = 1, min_tokens = 1, dea
 //     log.TokenPurchase(buyer, as_wei_value(eth_sold, 'wei'), tokens_bought)
 //     return as_wei_value(eth_sold, 'wei')
 
-Exchange.prototype.ethToTokenOutput = function (tokens_bought = 1, max_eth = 1, deadline = true, buyer = true, recipient = true) {
+Exchange.prototype.ethToTokenOutput = function (tokens_bought = BN(1), max_eth = BN(1), deadline = true, buyer = true, recipient = true) {
     if (!(deadline && (tokens_bought > 0 && max_eth > 0))) return;
     const eth_sold = this.getOutputPrice(tokens_bought, (this.tokenReserve - max_eth), this.tokenReserve)
     // # Throws if eth_sold > max_eth

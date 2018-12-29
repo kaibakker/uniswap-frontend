@@ -13,18 +13,18 @@ import { Exchange } from './ducks/uniswap'
 let exchange = new Exchange({ ethReserve: 100, tokenReserve: 10 })
 
 let exchange2 = new Exchange({ tokenAddress: '0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2' })
-let exchange3 = new Exchange({ exchangeAddress: '0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2' })
+let exchange3 = new Exchange({ exchangeAddress: '0x2C4Bd064b998838076fa341A83d007FC2FA50957' })
 let exchange4 = new Exchange({ symbol: 'MKR' })
 
-console.log(exchange2)
+console.log(exchange2);
 
-console.log(exchange3)
+console.log(exchange3);
 
-exchange4.syncBalances()
+exchange3.syncBalancesWithLogs();
 
-console.log(exchange4)
-// console.log(exchange)
-const trade5 = exchange.addLiquidity(100)
+console.log(exchange3);
+// console.log(exchange);
+const trade5 = exchange.addLiquidity(100);
 
 const ethValue = 1
 const price = exchange.neutralPrice();

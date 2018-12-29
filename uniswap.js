@@ -169,7 +169,6 @@ Exchange.prototype.getInputPrice = function (input_amount = 1, input_reserve = n
     const input_amount_with_fee = input_amount * 997
     const numerator = input_amount_with_fee * output_reserve
     const denominator = (input_reserve * 1000) + input_amount_with_fee
-    console.log(numerator / denominator)
     return numerator / denominator
 }
 
@@ -593,20 +592,30 @@ Exchange.prototype.ethToTokenOutput = function (tokens_bought = 1, max_eth = 1, 
 Exchange.prototype.neutralPrice = function () {
     return this.tokenReserve / this.ethReserve;
 }
+// Exchange.prototype.change = function (ethValue) {
 
+// }
 
 let exchange = new Exchange(100, 10)
 
-console.log(exchange)
+// console.log(exchange)
 const trade5 = exchange.addLiquidity(100)
-console.log(exchange)
+
+const ethValue = 1
+const price = exchange.neutralPrice();
+const tokenValue = (exchange.getInputPrice(ethValue))
+console.log(ethValue / tokenValue * price - 1)
+
+
+// console.log(exchange.change(10))
+exchange.getInputPrice(10)
+exchange.removeLiquidity(10)
 exchange.removeLiquidity(10)
 exchange.getInputPrice(10)
 exchange.removeLiquidity(10)
 exchange.getInputPrice(10)
 exchange.removeLiquidity(10)
 exchange.getInputPrice(10)
-console.log(exchange.getInputPrice(10))
 exchange.removeLiquidity(10)
 exchange.getInputPrice(10)
 exchange.removeLiquidity(10)
@@ -620,4 +629,4 @@ exchange.removeLiquidity(10)
 
 exchange.getInputPrice(10)
 console.log(exchange)
-console.log(trade5)
+// console.log(trade5)

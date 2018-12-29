@@ -38,18 +38,63 @@
 //     self.decimals = 18
 
 
+import {
+    selectors,
+} from './web3connect';
+import Web3 from 'web3';
+import EXCHANGE_ABI from "../abi/exchange";
+import FACTORY_ABI from '../abi/factory';
+import BN from 'bignumber.js'
+
+
+import { setAddresses, addExchange } from '../ducks/addresses';
+
+const NETWORK_ID = 1;
+const PROVIDER_URL = "https://mainnet.infura.io/v3/83d36df8e3eb42c9a061340696c0bf55";
+const addresses = setAddresses(NETWORK_ID)
+
+const web3 = new Web3(PROVIDER_URL);
+
+const factory = new web3.eth.Contract(FACTORY_ABI, addresses.payload.factoryAddress);
 
 
 
-function Exchange(ethReserve, tokenReserve) {
-    this.name = "Maker";
-    this.symbol = "MKR";
-    this.decimals = 18;
-    this.token = "";
-    this.totalSupply = 0;
-    this.ethReserve = 0;
-    this.tokenReserve = 0;
-    this.addLiquidity(ethReserve, 0, tokenReserve)
+export function Exchange({ name, symbol, decimals, tokenAddress, exchangeAddress, ethReserve, tokenReserve, totalSupply }) {
+    this.name = name;
+    this.symbol = symbol;
+    this.decimals = decimals && 18;
+    this.tokenAddress = tokenAddress;
+    this.exchangeAddress = exchangeAddress;
+    this.ethReserve = BN(ethReserve);
+    this.tokenReserve = BN(tokenReserve);
+    this.totalSupply = BN(totalSupply);
+
+    if (symbol) {
+        this.exchangeAddress = BN(addresses.payload.exchangeAddresses.addresses.filter((x) => { return x[0] === symbol })[0][1]);
+        this.tokenAddress = BN(addresses.payload.tokenAddresses.addresses.filter((x) => { return x[0] === symbol })[0][1]);
+        console.log(this.exchangeAddress)
+        // factory.methods.getExchange(tokenAddress).call((err, data) => {
+        //     if (!err && data !== '0x0000000000000000000000000000000000000000') {
+        //         console.log(addExchange({ label: "SNOR", tokenAddress, exchangeAddress: data }));
+        //     }
+        //     // this.setState({ loadingExchange: false });
+        // });
+    } else if (tokenAddress) {
+        this.exchangeAddress = addresses.payload.exchangeAddresses.fromToken[tokenAddress];
+        this.tokenAddress = BN(tokenAddress);
+    } else {
+        this.addLiquidity(ethReserve || 1, 0, tokenReserve)
+    }
+}
+
+Exchange.prototype.syncBalances = async function () {
+    const exchange = new web3.eth.Contract(EXCHANGE_ABI, this.exchangeAddress);
+
+    // const result = selectors().getTokenBalance(this.symbol, this.exchangeAddress);
+    // this.tokenReserve = result.value;
+    // this.decimals = result.decimals;
+    // this.ethReserve = selectors().getBalance(this.exchangeAddress).value;
+    this.totalSupply = await exchange.methods.totalSupply().call();
 }
 
 
@@ -596,37 +641,5 @@ Exchange.prototype.neutralPrice = function () {
 
 // }
 
-let exchange = new Exchange(100, 10)
-
-// console.log(exchange)
-const trade5 = exchange.addLiquidity(100)
-
-const ethValue = 1
-const price = exchange.neutralPrice();
-const tokenValue = (exchange.getInputPrice(ethValue))
-console.log(ethValue / tokenValue * price - 1)
-
-
-// console.log(exchange.change(10))
-exchange.getInputPrice(10)
-exchange.removeLiquidity(10)
-exchange.removeLiquidity(10)
-exchange.getInputPrice(10)
-exchange.removeLiquidity(10)
-exchange.getInputPrice(10)
-exchange.removeLiquidity(10)
-exchange.getInputPrice(10)
-exchange.removeLiquidity(10)
-exchange.getInputPrice(10)
-exchange.removeLiquidity(10)
-
-exchange.ethToTokenOutput(10)
-exchange.ethToTokenInput(10)
-exchange.removeLiquidity(10)
-exchange.removeLiquidity(10)
-
-exchange.removeLiquidity(10)
-
-exchange.getInputPrice(10)
-console.log(exchange)
-// console.log(trade5)
+// export const const Exchange;
+// export const Web3Connect

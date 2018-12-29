@@ -7,6 +7,56 @@ import store from './store';
 
 import './index.scss';
 
+import { Exchange } from './ducks/uniswap'
+
+
+let exchange = new Exchange({ ethReserve: 100, tokenReserve: 10 })
+
+let exchange2 = new Exchange({ tokenAddress: '0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2' })
+let exchange3 = new Exchange({ exchangeAddress: '0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2' })
+let exchange4 = new Exchange({ symbol: 'MKR' })
+
+console.log(exchange2)
+
+console.log(exchange3)
+
+exchange4.syncBalances()
+
+console.log(exchange4)
+// console.log(exchange)
+const trade5 = exchange.addLiquidity(100)
+
+const ethValue = 1
+const price = exchange.neutralPrice();
+const tokenValue = (exchange.getInputPrice(ethValue))
+console.log(ethValue / tokenValue * price - 1)
+
+
+// console.log(exchange.change(10))
+exchange.getInputPrice(10)
+exchange.removeLiquidity(10)
+exchange.removeLiquidity(10)
+exchange.getInputPrice(10)
+exchange.removeLiquidity(10)
+exchange.getInputPrice(10)
+exchange.removeLiquidity(10)
+exchange.getInputPrice(10)
+exchange.removeLiquidity(10)
+exchange.getInputPrice(10)
+exchange.removeLiquidity(10)
+
+exchange.ethToTokenOutput(10)
+exchange.ethToTokenInput(10)
+exchange.removeLiquidity(10)
+exchange.removeLiquidity(10)
+
+exchange.removeLiquidity(10)
+
+exchange.getInputPrice(10)
+// console.log(exchange)
+// console.log(trade5)
+
+
 if (process.env.NODE_ENV === 'development') {
   // ReactGA.initialize('UA-128182339-02');
 } else {
